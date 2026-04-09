@@ -50,6 +50,7 @@ _ynh_load_nodejs_in_path_and_other_tweaks() {
     export NPM_CONFIG_UPDATE_NOTIFIER=false
 
     # Cleanup Node versions
+    # Calling it here will remove unused versions on install/upgrade as well
     _ynh_nodejs_cleanup
 }
 
@@ -90,9 +91,9 @@ ynh_nodejs_install() {
     _ynh_load_nodejs_in_path_and_other_tweaks
 }
 
-# Remove the version of node used by the app.
+# Remove the version of Node used by the app.
 #
-# This helper will also cleanup unused nodejs versions
+# This helper will also cleanup unused Nodejs versions
 #
 # usage: ynh_nodejs_remove
 ynh_nodejs_remove() {
@@ -105,11 +106,16 @@ ynh_nodejs_remove() {
     _ynh_nodejs_cleanup
 }
 
+# Remove no more needed versions of Node used by the app.
+#
+# [internal]
+#
+# This helper will check what Nodejs version are no more required,
+# and uninstall them
+#
+# usage: _ynh_nodejs_cleanup
 _ynh_nodejs_cleanup() {
     
-    # Remove no more needed versions of nodejs used by the app.
-    # This helper will check what nodejs version are no more required,
-    # and uninstall them
     local installed_nodejs_versions=$(MISE_DATA_DIR=$MISE_DATA_DIR MISE_CACHE_DIR=$MISE_CACHE_DIR "${MISE_BIN_DIR}/mise" ls nodejs --json | jq -r '.[].version')
     for installed_nodejs_version in $installed_nodejs_versions; do
         if [[ -n "$installed_nodejs_version" ]] && [[ "$installed_nodejs_version" != "$nodejs_version" ]] && ! grep -qE "^nodejs_version: '?$installed_nodejs_version'?" /etc/yunohost/apps/*/settings.yml; then
@@ -120,9 +126,9 @@ _ynh_nodejs_cleanup() {
     done
 
     # LEGACY but still here for transition
-    export GOENV_ROOT="/opt/goenv"
-    if -e "$GOENV_ROOT"; then
+    export N_PREFIX="/opt/node_n"
     
+    if [ -e "$N_PREFIX" ]; then
         # If no other app uses n, remove n
         if ! grep -q "^nodejs_version:" /etc/yunohost/apps/*/settings.yml; then
             ynh_safe_rm "$N_PREFIX"
